@@ -312,14 +312,22 @@ class RequestDirector:
                 if isinstance(value, dict):
                     if not value:
                         continue
+                    style = param_info.style or "form"
                     if explode:
-                        # form,explode=true on objects: each property becomes
-                        # a separate query parameter.
-                        # e.g. {"R": 100, "G": 200} → R=100&G=200
-                        for k, v in value.items():
-                            serialized[_query_scalar_to_str(k)] = _query_scalar_to_str(
-                                v
-                            )
+                        if style == "deepObject":
+                            # deepObject,explode=true: bracket notation
+                            # e.g. {"eq": "x"} → filter[eq]=x
+                            for k, v in value.items():
+                                nested_key = f"{key}[{_query_scalar_to_str(k)}]"
+                                serialized[nested_key] = _query_scalar_to_str(v)
+                        else:
+                            # form,explode=true on objects: each property becomes
+                            # a separate query parameter.
+                            # e.g. {"R": 100, "G": 200} → R=100&G=200
+                            for k, v in value.items():
+                                serialized[_query_scalar_to_str(k)] = _query_scalar_to_str(
+                                    v
+                                )
                     else:
                         style = param_info.style or "form"
                         delimiter = self._STYLE_DELIMITERS.get(style, ",")
